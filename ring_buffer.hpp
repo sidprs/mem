@@ -38,7 +38,7 @@ class RingBuffer{
     if(size_ == 0 ){
       throw std::runtime_error("[pop] eror size == 0");
     }
-    T val = buff_[tail_].value;
+    T val = buff_[tail_].value_;
     tail_ = (tail_ + 1) % capacity_;
     size_--;
     return val;
@@ -48,16 +48,15 @@ class RingBuffer{
     if(size_ == 0){
       throw std::runtime_error("[pop] eror size == 0");
     }
-    T curr = buff_[head_].value;
-    return curr;
+    return buff_[head_].value;
   }
   const T& back() const{
     if(size_ == 0){
       throw std::runtime_error("[pop] eror size == 0");
     }
     int last = (head_ - 1 + capacity_) % capacity_;
-    T curr = buff_[last].value;
-    return curr;
+    return buff_[head_].value_;
+;
   }
   
   RingBuffer& operator=(const RingBuffer&) = delete;
@@ -74,9 +73,25 @@ class RingBuffer{
   }
   
   RingBuffer& operator=(RingBuffer&& other){
+    if(this == &other) return *this;
+   
+    cleanup();
+    //delete []buff_; // deleting the pointer variable to the heap
+    this->buff_ = other.buff_;
+    other.buff_ = nullptr;
+    capacity_ = other.capacity_;
+    head_ = other.head_;
+    tail_ = other.tail_;
+    size_ = other.size_;
+    other.capacity_ = 0;
+    other.head_ = other.tail_ = other.size_ = 0;
 
+    return *this;
+  }  
+
+  void cleanup(){
+    delete[] buff_;
   }
-
 
 };
 
