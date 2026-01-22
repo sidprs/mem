@@ -23,7 +23,6 @@ class RingBuffer{
   }
 
   void push(T value){
-    head_ = (head_ + 1) % capacity_;
     if(size_ == capacity_){
       tail_ = (tail_ + 1) % capacity_;
     }
@@ -32,6 +31,7 @@ class RingBuffer{
     }
     buff_[head_].value_ = value;  
     buff_[head_].index_ = size_;
+    head_ = (head_ + 1) % capacity_;
   }
 
   T pop(){
@@ -48,7 +48,7 @@ class RingBuffer{
     if(size_ == 0){
       throw std::runtime_error("[pop] eror size == 0");
     }
-    return buff_[head_].value;
+    return buff_[head_].value_;
   }
   const T& back() const{
     if(size_ == 0){
@@ -68,7 +68,7 @@ class RingBuffer{
      size_(other.size_), capacity_(other.capacity_)
   {
     other.buff_ = nullptr;
-    other.size = 0;
+    other.size_ = 0;
     other.capacity_ = 0;
   }
   
@@ -91,7 +91,9 @@ class RingBuffer{
 
   void cleanup(){
     delete[] buff_;
+    buff_ = nullptr;
   }
+  ~RingBuffer() { cleanup(); }
 
 };
 
