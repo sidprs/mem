@@ -1,0 +1,66 @@
+#include <iostream>
+
+
+
+template<typename T>
+class DynamicArray{
+  private:
+    T* buff_;
+    size_t size_;
+    size_t capacity_;
+    
+    bool check(int i){
+      if(i > capacity_ || i < 0){
+        return false;
+      }
+      return true; 
+    }
+    void resize(){
+      capacity_ *= 2;
+      T* newArr = new int[capacity];
+      for (int i{}; i < size_; i++) {
+          newArr[i] = buff_[i];
+      }
+      delete[] buff_;
+      buff_ = newArr;
+
+
+    }
+
+public:
+  explicit DynamicArray(int capacity): capacity_(capacity)
+  {
+    buff_ = new T[(int)capacity_];
+  }
+  
+  int get(int i){
+    check(i);        
+    return buff_[i];
+  }
+  void set(int i, int n){
+    check(i);
+    buff_[i] = n;
+  }
+  
+  void pushback(int n){
+    
+    size_++;
+    
+  }
+  int getSize(){
+    return size_;
+  }
+  int getCapacity(){
+    return capacity_;
+  }
+
+};
+
+
+
+int main(int argc, char* argv[]){
+
+
+
+  return 0;
+}
