@@ -4,9 +4,44 @@
 #include <memory>
 #include <stdexcept>
 #include <utility>
+#include <list>
 
+template<typename T>
+class LRUOrder{
+  public:
+    void put(int key, int value){
+      auto it = cache_.find(key);
+      if(it != cache_.end()){
+      // this exits in the cache
+        it->second.value_ = value;
+        touch(key);
+        return;
+      }
+      auto [it, inserted ] = cache_.emplace(key, Node{value, order_.begin()});
+    
+    }
 
+  private:
+    struct Node{
+      T value_;
+      std::list<int>::iterator list_iter_;
+    };
 
+    std::unordered_map<int, Node>cache_;
+    std::list<int> order_;
+    
+    void touch(int key){
+    // goal of touch is make it MRU 
+    // prereq is we know this key exists in order
+      auto it = cache_.find(key);
+      if(it == cache_.end()) return;
+      //order_.erase(key);
+      //order_.push_front(key);
+      order_.splice(order_.begin(), order_, it->second.value_);
+      it->second.list_iter_ = order_.begin();
+    }
+
+};
 
 template<typename T>
 class LRU{
