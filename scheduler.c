@@ -126,3 +126,92 @@ int rle_bit_decode(const uint8_t* input, size_t input_len, uint8_t* output, size
     }
     return (int)required_bytes;
 }
+
+/*
+ * A raw 8-byte CAN frame arrives as a uint8_t[8].
+ * A signal is defined by:
+ *   start_bit  : bit index from LSB of byte 0 (little-endian)
+ *   length     : number of bits in the signal
+ *
+ * Extract the signal value as a uint32_t.
+ *
+ * Example:
+ *   frame = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x34, 0x12 }
+ *      { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x34, 0x12 }
+ *      //  b0    b1    b2    b3    b4    b5    b6    b7
+
+ *   start_bit = 48, length = 16
+ *   result = 0x1234
+ *
+ * @param frame      pointer to 8-byte CAN frame
+ * @param start_bit  starting bit position (0 = LSB of byte 0)
+ * @param length     number of bits to extract (1-32)
+ * @return           extracted signal value
+ */
+uint32_t can_unpack_signal(const uint8_t* frame, uint8_t start_bit, uint8_t length);
+
+
+
+uint32_t can_unpack_signal(const uint8_t* frame, uint8_t start_bit, uint8_t length){
+    // length in bits 
+    // move it into a uint64_t then find it 
+    uint64_t val = 0;
+    for(int i = 0; i < 8; i++){
+        val |= (uint64_t)frame[i] << (i * 8);
+    }
+
+    val = val >> start_bit;
+    uint32_t result = val & ((1 << length) - 1);    
+    return result;
+
+}
+/*
+ * You are given a 32-bit memory-mapped status register.
+ * Implement four operations without using any branching (no if/else/ternary).
+ *
+ * set_bit    : set bit at position pos to 1 
+ * clear_bit  : clear bit at position pos to 0 
+ * toggle_bit : toggle bit at position pos to other
+ * check_bit  : return 1 if bit at pos is set, 0 otherwise
+ *
+ * @param reg  pointer to the 32-bit register
+ * @param pos  bit position (0-31)
+ */
+void set_bit   (volatile uint32_t* reg, uint8_t pos);
+void clear_bit (volatile uint32_t* reg, uint8_t pos);
+void toggle_bit(volatile uint32_t* reg, uint8_t pos);
+uint8_t check_bit(volatile uint32_t* reg, uint8_t pos);
+
+
+void set_bit(volatile uint32_t* reg, uint8_t pos){
+    if (reg == NULL || pos >= 32) return;
+    *reg |= (1 << pos);
+}
+
+void clear_bit (volatile uint32_t* reg, uint8_t pos){
+    *reg &= ~(1<< pos);
+}
+
+void toggle_bit(volatile uint32_t* reg, uint8_t pos){
+    *reg ^= (1<< pos);
+}
+
+uint8_t check_bit(volatile uint32_t* reg, uint8_t pos){
+    return (uint8_t)((*reg >> pos) & 1U);
+}
+
+int has_consecutive_ones(uint32_t n)
+{
+    return (n & (n << 1)) != 0;
+}
+
+int has_k_consecutive_ones(uint32_t n, int k)
+{
+    uint32_t mask = n;
+
+    for (int i = 1; i < k; i++) {
+        mask &= (n >> i);
+    }
+
+    return mask != 0;
+}

@@ -1,0 +1,22 @@
+#include <iostream>
+#include <vector>
+#include <unordered_map>
+
+
+
+
+// jank detection 
+
+struct sample{
+  int64_t ts_us;   // monotonically increasing timestamp
+  int32_t dur_us;  // gpu frame duration
+};
+
+
+
+int main(int argc, char* argv[]){
+
+
+
+  return 0;
+}
