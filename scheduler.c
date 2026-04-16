@@ -51,6 +51,46 @@ void pack_sensor_data(const uint8_t* input, size_t input_len, uint8_t* output, s
     }
 }
 
+/*
+ * You receive a packed bitstream where every 5 bits represents
+ * one sensor reading. Unpack them back into an array of uint8_t,
+ * one reading per byte (zero-padded to 8 bits).
+ *
+ * Example:
+ *   input (packed) : [ D E F G H I J K ] [ L M N O P 0 0 0 ]
+ *   output         : [ 0 0 0 D E F G H ] [ 0 0 0 I J K L M ] [ 0 0 0 N O P 0 0 ]
+ *                      ^-- each output byte holds one 5-bit reading
+ *
+ * @param input       packed bitstream
+ * @param input_len   byte length of packed buffer
+ * @param output      destination, one uint8_t per reading
+ * @param num_values  how many 5-bit values to unpack
+ */
+void unpack_sensor_data(const uint8_t* input, size_t input_len,
+                        uint8_t* output, size_t num_values);
+
+void unpack_sensor_data(const uint8_t* input, size_t input_len, uint8_t* output, size_t num_values){
+    // create a 32 int 
+    //     
+    uint8_t current_byte = 0;
+    int8_t current_bit = 7;
+
+    for(int i = 0; i < input_len ; i++){
+        uint8_t value = 0;
+        for(int j = 4; i >= 0; j--){
+            uint8_t bit = (input[current_byte] >> current_bit) & 1;
+            value |= bit << j;
+            current_bit--;
+            if (current_bit < 0) {
+                current_bit = 7;
+                current_byte++;
+            }    
+        }
+        output[i] = value;
+    }
+}
+
+
 
 /***
  *  RLE Bit Decoder
@@ -215,3 +255,132 @@ int has_k_consecutive_ones(uint32_t n, int k)
 
     return mask != 0;
 }
+
+/*
+ *
+ * A BMS status register is a uint32_t with the following layout:
+ *
+ *   bits [31:24] - reserved
+ *   bits [23:16] - temperature (raw ADC, 8-bit unsigned)
+ *   bits [15:8]  - cell voltage (raw ADC, 8-bit unsigned)
+ *   bits [7:4]   - fault flags (4 bits)
+ *   bits [3:0]   - state machine state (4 bits)
+ *
+ * (a) Write get_field() and set_field() for arbitrary bit ranges.
+ * (b) Using only those two, extract temperature and write back
+ *     a new fault flag value of 0b1010 without touching any
+ *     other field.
+ *
+ * uint32_t get_field(uint32_t reg, uint8_t shift, uint8_t width);
+ * void     set_field(uint32_t *reg, uint8_t shift, uint8_t width, uint32_t val);
+ */
+
+
+uint32_t get_field(uint32_t reg, uint8_t shift, uint8_t width);
+void     set_field(uint32_t *reg, uint8_t shift, uint8_t width, uint32_t val);
+
+
+uint32_t get_field(uint32_t reg, uint8_t shift, uint8_t width){
+    /*
+        reg — the full 32-bit status register value
+        shift — which bit position the field starts at (LSB of the field)
+        width — how many bits wide the field is
+    */  
+    uint32_t reg_c = reg;
+    return (reg_c >> shift) & ((1U << width) - 1);  
+    //   reg >> start & (1 << (width) - 1)
+}
+
+
+/*
+ * You have a packed 3-byte (24-bit) big-endian buffer from an AFE
+ * over SPI. It holds a 20-bit signed cell voltage reading in the
+ * upper 20 bits (bits [23:4]), and a 4-bit status nibble in [3:0].
+ *
+ *   buf = { 0xA4, 0xB3, 0xC5 }
+ *          MSB          LSB
+ *
+ * (a) Extract the 20-bit raw voltage as a uint32_t.
+ * (b) Sign-extend it to int32_t (the raw value is two's complement).
+ * (c) Extract the 4-bit status nibble.
+ *
+ * int32_t  get_voltage(const uint8_t buf[3]);
+ * uint8_t  get_status(const uint8_t buf[3]);
+ *
+ * Do not use memcpy or any union tricks — only shifts and masks.
+ */
+
+int32_t  get_voltage(const uint8_t buf[3]){
+    uint32_t raw = 0;
+    for(int i =0; i < 3; i++){
+        raw |= (uint32_t)buf[i] << ((2-i)*8);
+    }
+    uint32_t voltage_20 = raw >> 4;
+    if (voltage_20 & (1U << 19)) {        // if bit 19 (MSB of 20-bit value) is set
+        voltage_20 |= 0xFFF00000;         // fill bits [31:20] with 1s
+    }
+
+    return (int32_t)voltage_20;
+}
+
+uint8_t get_status(const uint8_t buf[3]) {
+    return buf[2] & 0x0F;   // status nibble is bits [3:0] of last byte
+}
+
+
+
+
+/***
+ *  Bitstream Packet Construction
+ *
+ *  You are given 3 fields:
+ *  - 11-bit sensor ID
+ *  - 5-bit command
+ *  - 8-bit payload
+ *
+ *  You must pack them into a continuous bitstream and compute a checksum.
+ *
+ *  Bit Layout (MSB-first streaming order):
+ *
+ *    ID (11 bits) | CMD (5 bits) | PAYLOAD (8 bits) | CHECKSUM (8 bits)
+ *
+ *  Checksum rule:
+ *      checksum = (id + command + payload) & 0xFF
+ *
+ *  Output buffer is 6 bytes (48 bits total).
+ *  Unused bits must be zeroed.
+ *
+ *
+ *  Example:
+ *
+ *  id      = 0b00000101101 (11 bits)
+ *  cmd     = 0b10101       (5 bits)
+ *  payload = 0xA7          (8 bits)
+ *
+ *  Stream:
+ *
+ *      ID (11 bits)    CMD (5 bits)    PAYLOAD (8 bits)    CHECKSUM (8 bits)
+ *   [ A B C D E F G H I J K ] [ L M N O P ] [ Q R S T U V W X ] [ Y Z ... ]
+ *
+ *   Bits are packed continuously into bytes:
+ *
+ *       Byte0        Byte1        Byte2        Byte3        Byte4        Byte5
+ *   [ ........ ] [ ........ ] [ ........ ] [ ........ ] [ ........ ] [ ........ ]
+ *
+ *
+ *  Requirements:
+ *  - MSB-first bit packing
+ *  - No structs or bitfields
+ *  - No undefined behavior in shifts
+ *  - Must not write beyond output[6]
+ *  - All unused bits must be zero
+ *
+ *
+ *  Function to implement:
+ *
+ *  void build_packet(uint16_t id,
+ *                    uint8_t command,
+ *                    uint8_t payload,
+ *                    uint8_t *out);
+ *
+ */

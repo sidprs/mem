@@ -109,7 +109,7 @@ static int gpio_expander_set_dir_output(struct gpio_chip *gc, unsigned offset, i
  
  
         /* XXX: TODO: Update dev->shadow appropriately */
- 
+        dev->shadow |= (1 << (offset + 4));
  
         /* I2C write */
         return i2c_smbus_write_byte(dev->client, dev->shadow);
