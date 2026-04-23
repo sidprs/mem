@@ -38,6 +38,7 @@ uint8_t reverse_bits(uint8_t x);
 uint8_t reverse_bits(uint8_t x){
     uint8_t out = 0;
     for(int i = 0; i < 8; i++){
+        out <<= 1;
         uint8_t n = (x >> 1) & 1;
         out |= n << (7 - i);
     }

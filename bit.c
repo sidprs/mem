@@ -10,7 +10,7 @@ bool has_consecutive_set_bits(u_int32_t n) {
   return (n & (n << 1)) != 0;
 }
 
-uint32_t has_k_consecutive_set_bits(uint32_t n, int k) {
+uint32_t longest_consect(uint32_t n) {
   uint32_t temp = n;
   uint32_t count = 0;
   while (n != 0) {
@@ -20,6 +20,24 @@ uint32_t has_k_consecutive_set_bits(uint32_t n, int k) {
   return count;
 }
 
+uint8_t reverse_bits(uint8_t input){
+  uint8_t rev = 0;
+  for(int i =0; i < (sizeof(input)*8); i++){
+    rev <<= 1;
+    rev |= (input & 1);
+    input >>= 1;
+  }
+
+}
+
+uint32_t reverse_bits32(uint32_t x) {
+    x = (x >> 16) | (x << 16);
+    x = ((x & 0xFF00FF00U) >> 8)  | ((x & 0x00FF00FFU) << 8);
+    x = ((x & 0xF0F0F0F0U) >> 4)  | ((x & 0x0F0F0F0FU) << 4);
+    x = ((x & 0xCCCCCCCCU) >> 2)  | ((x & 0x33333333U) << 2);
+    x = ((x & 0xAAAAAAAAU) >> 1)  | ((x & 0x55555555U) << 1);
+    return x;
+}
 
 // bit packing 
 
@@ -51,7 +69,36 @@ typedef struct{
   size_t buff_size;
 } sensor_pack_t;
 
+
+typedef struct{
+  uint16_t u16;
+  uint32_t u32;
+  float f1;
+} data_pack;
+
+
+
+int main(){
+
+const data_pack* data_values;
+uint8_t *bytes = (uint8_t*)&data_values;
+
+for(int i = 0; i < sizeof(bytes); i++){
+  for(int j = 0; j < 8; j++){
+
+
+  }
+
+}
+
+
+
+
+
 sensor_pack_t sensor_table = {
   .buff = NULL,
   .buff_size = 0
 };
+
+
+}
