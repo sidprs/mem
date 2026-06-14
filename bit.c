@@ -85,6 +85,7 @@ uint8_t *bytes = (uint8_t*)&data_values;
 
 for(int i = 0; i < sizeof(bytes); i++){
   for(int j = 0; j < 8; j++){
+    
 
 
   }

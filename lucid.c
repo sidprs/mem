@@ -31,6 +31,43 @@ void unpack_bits(const uint8_t *bitbuf, data_pack *dst) {
     }
 }
 
+typedef struct{
+    uint8_t header;
+    uint32_t data_frame;
+    uint8_t ecc_tile;
+} Data_Packet_t;
+
+// PACK: struct bytes → uint32_t bit by bit
+uint8_t processed(Data_Packet_t* input, uint32_t* output) {
+    uint8_t* bytes = (uint8_t*)input;   // treat struct as raw byte array
+    *output = 0;
+
+    for (int i = 0; i < 4; i++) {          // i = byte index
+        for (int j = 0; j < 8; j++) {      // j = bit index within byte
+            int bit = (bytes[i] >> j) & 1;         // extract bit j from byte i
+            *output |= (bit << (8*i + j));          // place at position 8*i+j
+        }
+    }
+    return 0;
+}
+
+// UNPACK: uint32_t → struct bytes bit by bit
+uint8_t received(uint32_t* input, Data_Packet_t* output) {
+    uint8_t* bytes = (uint8_t*)output;  // treat struct as raw byte array
+    memset(output, 0, sizeof(Data_Packet_t));
+
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 8; j++) {
+            int bit = (*input >> (8*i + j)) & 1;   // extract bit from packed
+            bytes[i] |= (bit << j);                 // place into byte i, bit j
+        }
+    }
+    return 0;
+}
+
+
+
+
 int main() {
     data_pack original = {0xABCD, 0x12345678, 3.14f};
     uint8_t bitbuf[STRUCT_BITS];
